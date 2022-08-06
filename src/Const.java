@@ -11,4 +11,11 @@ public class Const {
     public static int PIECE_SIZE = SQUARE_SIZE - 20;
     public static int POS_SQUARE_X = SQUARE_SIZE / 2 - 10;
 
+    public static String square(Point p){
+        int x = p.x, y = p.y;
+        String ans = "";
+        ans += (char)((int)('a')+x);
+        ans += 8-y;
+        return ans;
+    }
 }

@@ -26,4 +26,12 @@ public class Kill {
     public Piece getKilled() {
         return killed;
     }
+
+    public Point getInitialSquare(){
+        return new Point(killer.getX(), killer.getY());
+    }
+
+    public Point getDestination() {
+        return destination;
+    }
 }

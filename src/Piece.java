@@ -1,8 +1,11 @@
+import java.awt.*;
+
 public class Piece {
     private int x, y;
     private int color;
     private boolean isQueen;
     public int[] prevKillDirection;
+
 
     public Piece(int x, int y, int color) {
         this.x = x;
@@ -38,6 +41,10 @@ public class Piece {
 
     public void promote(){
         isQueen = true;
+    }
+
+    public Point getPosition(){
+        return new Point(x, y);
     }
 
     @Override

@@ -5,6 +5,7 @@ import java.awt.event.MouseListener;
 import java.lang.reflect.Array;
 import java.util.*;
 import java.util.List;
+import java.util.function.Consumer;
 import java.util.stream.Stream;
 
 public class Board2P extends JPanel implements MouseListener {
@@ -12,12 +13,14 @@ public class Board2P extends JPanel implements MouseListener {
     private MyFrame myFrame;
     private List<Piece> pieces;
     private Piece[][] board;
-    private List<Point> possibleSquares;
-    private Piece selected;
+    protected List<Point> possibleSquares;
+    protected Piece selected;
     private boolean p1 = true; //player one turn
     private boolean previousTakerCanTake;
     private int whites = 12;
     private int blacks = 12;
+    protected Move previousMove;
+    protected Piece previousSelected;
 
     public Board2P(MyFrame myFrame){
         super();
@@ -123,7 +126,7 @@ public class Board2P extends JPanel implements MouseListener {
         else
             whites--;
     }
-    private List<Point> getMoves(Piece piece){
+    protected List<Point> getMoves(Piece piece){
         if(piece == null) return null;
         List<Point> ans = new LinkedList<>();
         int x = piece.getX(); int y = piece.getY();
@@ -192,7 +195,7 @@ public class Board2P extends JPanel implements MouseListener {
         return false;
     }
 
-    private List<Kill> getKills(Piece killer){
+    protected List<Kill> getKills(Piece killer){
 
         List<Kill> ans = new LinkedList<>();
         int x = killer.getX(), y = killer.getY(), color = killer.getColor();
@@ -246,6 +249,8 @@ public class Board2P extends JPanel implements MouseListener {
     }
 
     private void placePiece(Piece piece, int x, int y){
+        if(!pieces.contains(piece))
+            pieces.add(piece);
         int prevX = piece.getX(); int prevY = piece.getY();
         piece.setX(x);
         piece.setY(y);
@@ -253,23 +258,22 @@ public class Board2P extends JPanel implements MouseListener {
         board[y][x] = piece;
     }
     private void placePiece(Piece piece, Point where){
-        int x = where.x, y = where.y;
+        int x = where.x;
+        int y = where.y;
+        if(!pieces.contains(piece))
+            pieces.add(piece);
         int prevX = piece.getX(); int prevY = piece.getY();
         piece.setX(x);
         piece.setY(y);
         board[prevY][prevX] = null;
         board[y][x] = piece;
     }
+
     private boolean isAnEmptySquare(int x, int y){
         return x >= 0 && x < 8 && y >= 0 && y < 8 && board[y][x] == null;
     }
 
-
-    @Override
-    public void mouseClicked(MouseEvent e) {
-
-        int x = e.getX() / Const.SQUARE_SIZE;
-        int y = e.getY() / Const.SQUARE_SIZE;
+    private void humanMove(int x, int y){
         int color = p1? Const.WHITE : Const.BLACK;
         boolean hasToTake = false;
         Piece clicked = getPiece(x,y);
@@ -303,13 +307,17 @@ public class Board2P extends JPanel implements MouseListener {
                 if(previousTakerCanTake || onlyOneCanTake){
                     if(possibleSquares.stream().anyMatch(p-> p.x == x && p.y == y)){
                         Kill kill = kills.stream().filter(k->k.getY() == y && k.getX() == x).findFirst().get();
+                        previousMove = new Move(kill.getKiller(), kill.getKilled(), true, kill.getInitialSquare(), kill.getDestination(), p1, previousTakerCanTake, whites, blacks);
                         take(kill);
-                        if(canTake(kill.getKiller()))
+                        if(canTake(kill.getKiller())) {
                             previousTakerCanTake = true;
+                            previousSelected = selected;
+                        }
                         else {
                             previousTakerCanTake = false;
                             p1 = !p1;
                             selected.prevKillDirection = new int[2];
+                            previousSelected = selected;
                             selected = null;
                         }
                     }
@@ -319,13 +327,17 @@ public class Board2P extends JPanel implements MouseListener {
                     selected = clicked;
                 }else if(possibleSquares.stream().anyMatch(p->p.x == x && p.y == y)){
                     Kill kill = kills.stream().filter(k->k.getY() == y && k.getX() == x).findFirst().get();
+                    previousMove = new Move(kill.getKiller(), kill.getKilled(), true, kill.getInitialSquare(), kill.getDestination(), p1, previousTakerCanTake, whites, blacks);
                     take(kill);
-                    if(canTake(kill.getKiller()))
+                    if(canTake(kill.getKiller())) {
                         previousTakerCanTake = true;
+                        previousSelected = selected;
+                    }
                     else {
                         selected.prevKillDirection = new int[2];
                         previousTakerCanTake = false;
                         p1 = !p1;
+                        previousSelected = selected;
                         selected = null;
                     }
                 }
@@ -334,6 +346,8 @@ public class Board2P extends JPanel implements MouseListener {
                 if(clicked != null && clicked.getColor() == color){
                     selected = clicked;
                 }else if(possibleSquares.stream().anyMatch(p-> p.x == x && p.y == y)){
+                    previousMove = new Move(selected, null, false, selected.getPosition(), new Point(x, y), p1, previousTakerCanTake, whites, blacks);
+                    previousSelected = selected;
                     move(selected, x, y);
                 }
             }
@@ -355,6 +369,89 @@ public class Board2P extends JPanel implements MouseListener {
             myFrame.gameOver(Const.BLACK);
     }
 
+    private List<Move> generateMoves(){
+        Board2P thisBoard = this;
+        List<Move> ans = new LinkedList<>();
+        int color = p1 ?  Const.WHITE : Const.BLACK;
+        List<Piece> whoCanTake;
+        if(previousTakerCanTake)
+            whoCanTake = List.of(selected);
+        else
+            whoCanTake = pieces.stream().filter(p->p.getColor() == color && canTake(p)).toList();
+        boolean hasToTake = !whoCanTake.isEmpty();
+        if(hasToTake){
+            for(Piece killer : whoCanTake ){
+                List<Kill> kills = getKills(killer);
+                for (Kill kill : kills){
+                    ans.add(new Move(killer, kill.getKilled(), true, kill.getInitialSquare(), kill.getDestination(), p1, previousTakerCanTake, whites, blacks));
+                }
+            }
+        }else {
+            pieces.stream().filter(p->p.getColor() == color).forEach(new Consumer<Piece>() {
+                @Override
+                public void accept(Piece piece) {
+                    List<Point> moves = getMoves(piece);
+                    if(!moves.isEmpty()){
+                        for(Point p : moves){
+                            ans.add(new Move(piece, null, false, piece.getPosition(), p, p1, previousTakerCanTake, whites, blacks));
+                        }
+                    }
+                }
+            });
+        }
+        return ans;
+    }
+
+    private int evaluatePosition(){
+        return p1 ? whites : blacks;
+    }
+
+    public void setPossibleSquares() {
+
+    }
+
+    private void playMove(Move move){
+        Piece piece = move.piece;
+        placePiece(piece, move.newPosition);
+        if(move.isKill){
+            whites = p1 ? whites : whites -1;
+            blacks = p1 ? blacks -1 : whites;
+            pieces.remove(move.killed);
+            previousTakerCanTake = canTake(piece);
+            if(!previousTakerCanTake)
+                p1 = !p1;
+        }else {
+            //not a kill
+            previousTakerCanTake = false;
+            p1 = !p1;
+        }
+    }
+    public void unmakeMove(Move move){
+        p1 = move.p1;
+        previousTakerCanTake = move.prevTakerCanTake;
+        Piece piece = move.piece;
+        placePiece(piece, move.prevPosition);
+        if(move.isKill){
+            placePiece(move.killed, move.killed.getPosition());
+            whites = move.p1 ? whites : whites + 1;
+            blacks = move.p1 ? blacks + 1 : blacks;
+        }else {
+            //move is not a kill
+            whites = move.whites;
+            blacks = move.blacks;
+        }
+    }
+
+    private void computerMove(){
+
+    }
+    @Override
+    public void mouseClicked(MouseEvent e) {
+        int x = e.getX() / Const.SQUARE_SIZE;
+        int y = e.getY() / Const.SQUARE_SIZE;
+        humanMove(x, y);
+    }
+
     @Override
     public void mousePressed(MouseEvent e) {
 
@@ -373,5 +470,10 @@ public class Board2P extends JPanel implements MouseListener {
     @Override
     public void mouseExited(MouseEvent e) {
 
+    }
+
+    @Override
+    public String toString() {
+        return "board 2p";
     }
 }

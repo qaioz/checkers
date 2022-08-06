@@ -8,6 +8,7 @@ public class MyFrame extends JFrame {
     private JPanel panel;
     private final JPanel mainPanel = mainPanel();
     private final JButton mainMenuButton = mainMenuButton();
+    private  JButton cancelMove;
 
     public MyFrame(){
         super();
@@ -24,17 +25,16 @@ public class MyFrame extends JFrame {
         MyFrame frame = this;
         JButton button = new JButton("2 players");
         button.setBounds((688-300)/2 , 200, 300, 50);
-        button.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                setVisible(false);
-                getContentPane().remove(panel);
-                panel = new Board2P(frame);
-                add(panel);
-                add(mainMenuButton);
-                repaint();
-                setVisible(true);
-            }
+        button.addActionListener(e -> {
+            setVisible(false);
+            getContentPane().remove(panel);
+            panel = new Board2P(this);
+            cancelMove = cancelMove();
+            add(panel);
+            add(cancelMove);
+            add(mainMenuButton);
+            repaint();
+            setVisible(true);
         });
         return button;
     }
@@ -48,7 +48,7 @@ public class MyFrame extends JFrame {
             public void actionPerformed(ActionEvent e) {
                 setVisible(false);
                 getContentPane().remove(panel);
-                panel = new BoardComputer(thisFrame);
+                panel = new JPanel();
                 add(panel);
                 add(mainMenuButton);
                 repaint();
@@ -58,6 +58,30 @@ public class MyFrame extends JFrame {
         return button;
     }
 
+    private JButton cancelMove(){
+        MyFrame myFrame = this;
+        Board2P board = (Board2P) panel;
+        JButton button = new JButton("Cancel");
+        button.setBounds(1100 , 200, 200, 50);
+        button.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                if(board.previousMove == null)
+                    return;
+                Move prevMove = board.previousMove;
+                board.unmakeMove(prevMove);
+                board.selected = board.previousSelected;
+                if(prevMove.isKill){
+                    board.possibleSquares = board.getKills(prevMove.piece).stream().map(k->k.getDestination()).toList();
+                }else {
+                    board.possibleSquares = board.getMoves(prevMove.piece);
+                }
+                board.previousMove = null;
+                myFrame.repaint();
+            }
+        });
+        return button;
+    }
     private JButton mainMenuButton(){
         JButton button = new JButton("Main Menu");
         button.setBounds(1100 , 100, 200, 50);
@@ -66,6 +90,7 @@ public class MyFrame extends JFrame {
             public void actionPerformed(ActionEvent e) {
                 setVisible(false);
                 remove(panel);
+                remove(cancelMove);
                 remove(button);
                 panel = mainPanel;
                 add(panel);
