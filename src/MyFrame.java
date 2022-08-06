@@ -66,17 +66,16 @@ public class MyFrame extends JFrame {
         button.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                if(board.previousMove == null)
+                if(board.previousMove.isEmpty() || board.previousSelected.isEmpty())
                     return;
-                Move prevMove = board.previousMove;
+                Move prevMove = board.previousMove.pop();
                 board.unmakeMove(prevMove);
-                board.selected = board.previousSelected;
+                board.selected = board.previousSelected.pop();
                 if(prevMove.isKill){
                     board.possibleSquares = board.getKills(prevMove.piece).stream().map(k->k.getDestination()).toList();
                 }else {
                     board.possibleSquares = board.getMoves(prevMove.piece);
                 }
-                board.previousMove = null;
                 myFrame.repaint();
             }
         });

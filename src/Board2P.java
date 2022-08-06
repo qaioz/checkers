@@ -19,11 +19,13 @@ public class Board2P extends JPanel implements MouseListener {
     private boolean previousTakerCanTake;
     private int whites = 12;
     private int blacks = 12;
-    protected Move previousMove;
-    protected Piece previousSelected;
+    protected final Stack<Move> previousMove;
+    protected Stack<Piece> previousSelected;
 
     public Board2P(MyFrame myFrame){
         super();
+        previousSelected = new Stack<>();
+        previousMove = new Stack<>();
         this.myFrame = myFrame;
         setBounds(Const.PANEL_BOUNDS);
         pieces = new LinkedList<>();
@@ -284,8 +286,6 @@ public class Board2P extends JPanel implements MouseListener {
             if(count == 1L)
                 onlyOneCanTake = true;
         }
-
-
         if(selected == null){
             if(hasToTake){
                 if(onlyOneCanTake){
@@ -307,17 +307,17 @@ public class Board2P extends JPanel implements MouseListener {
                 if(previousTakerCanTake || onlyOneCanTake){
                     if(possibleSquares.stream().anyMatch(p-> p.x == x && p.y == y)){
                         Kill kill = kills.stream().filter(k->k.getY() == y && k.getX() == x).findFirst().get();
-                        previousMove = new Move(kill.getKiller(), kill.getKilled(), true, kill.getInitialSquare(), kill.getDestination(), p1, previousTakerCanTake, whites, blacks);
+                        previousMove.push(new Move(kill.getKiller(), kill.getKilled(), true, kill.getInitialSquare(), kill.getDestination(), p1, previousTakerCanTake, whites, blacks));
                         take(kill);
                         if(canTake(kill.getKiller())) {
                             previousTakerCanTake = true;
-                            previousSelected = selected;
+                            previousSelected.push(selected);
                         }
                         else {
                             previousTakerCanTake = false;
                             p1 = !p1;
                             selected.prevKillDirection = new int[2];
-                            previousSelected = selected;
+                            previousSelected.push(selected);
                             selected = null;
                         }
                     }
@@ -327,17 +327,17 @@ public class Board2P extends JPanel implements MouseListener {
                     selected = clicked;
                 }else if(possibleSquares.stream().anyMatch(p->p.x == x && p.y == y)){
                     Kill kill = kills.stream().filter(k->k.getY() == y && k.getX() == x).findFirst().get();
-                    previousMove = new Move(kill.getKiller(), kill.getKilled(), true, kill.getInitialSquare(), kill.getDestination(), p1, previousTakerCanTake, whites, blacks);
+                    previousMove.push(new Move(kill.getKiller(), kill.getKilled(), true, kill.getInitialSquare(), kill.getDestination(), p1, previousTakerCanTake, whites, blacks));
                     take(kill);
                     if(canTake(kill.getKiller())) {
                         previousTakerCanTake = true;
-                        previousSelected = selected;
+                        previousSelected.push(selected);
                     }
                     else {
                         selected.prevKillDirection = new int[2];
                         previousTakerCanTake = false;
                         p1 = !p1;
-                        previousSelected = selected;
+                        previousSelected.push(selected);
                         selected = null;
                     }
                 }
@@ -346,9 +346,11 @@ public class Board2P extends JPanel implements MouseListener {
                 if(clicked != null && clicked.getColor() == color){
                     selected = clicked;
                 }else if(possibleSquares.stream().anyMatch(p-> p.x == x && p.y == y)){
-                    previousMove = new Move(selected, null, false, selected.getPosition(), new Point(x, y), p1, previousTakerCanTake, whites, blacks);
-                    previousSelected = selected;
+                    previousMove.push(new Move(selected, null, false, selected.getPosition(), new Point(x, y), p1, previousTakerCanTake, whites, blacks));
+                    previousSelected.push(selected);
                     move(selected, x, y);
+                }else {
+                    selected = null;
                 }
             }
         }
