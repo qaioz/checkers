@@ -3,7 +3,7 @@ import java.awt.*;
 public class Piece {
     private int x, y;
     private int color;
-    private boolean isQueen;
+    public boolean isQueen;
     public int[] prevKillDirection;
 
 

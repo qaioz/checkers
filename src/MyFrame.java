@@ -2,6 +2,7 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.util.stream.Collectors;
 
 public class MyFrame extends JFrame {
 
@@ -21,14 +22,15 @@ public class MyFrame extends JFrame {
         this.setVisible(true);
     }
 
-    private JButton vsFriendButton(){
+
+    private JButton vsComputerButton(){
         MyFrame frame = this;
-        JButton button = new JButton("2 players");
+        JButton button = new JButton("1 Player");
         button.setBounds((688-300)/2 , 200, 300, 50);
         button.addActionListener(e -> {
             setVisible(false);
             getContentPane().remove(panel);
-            panel = new Board2P(this);
+            panel = new BoardComp(this);
             cancelMove = cancelMove();
             add(panel);
             add(cancelMove);
@@ -37,30 +39,12 @@ public class MyFrame extends JFrame {
             setVisible(true);
         });
         return button;
-    }
 
-    private JButton vsComputerButton(){
-        MyFrame thisFrame = this;
-        JButton button = new JButton("Computer");
-        button.setBounds((688-300)/2 , 100, 300, 50);
-        button.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                setVisible(false);
-                getContentPane().remove(panel);
-                panel = new JPanel();
-                add(panel);
-                add(mainMenuButton);
-                repaint();
-                setVisible(true);
-            }
-        });
-        return button;
     }
 
     private JButton cancelMove(){
         MyFrame myFrame = this;
-        Board2P board = (Board2P) panel;
+        BoardComp board = (BoardComp) panel;
         JButton button = new JButton("Cancel");
         button.setBounds(1100 , 200, 200, 50);
         button.addActionListener(new ActionListener() {
@@ -72,9 +56,9 @@ public class MyFrame extends JFrame {
                 board.unmakeMove(prevMove);
                 board.selected = board.previousSelected.pop();
                 if(prevMove.isKill){
-                    board.possibleSquares = board.getKills(prevMove.piece).stream().map(k->k.getDestination()).toList();
+                    board.possibleSquares = board.getKills(prevMove.piece).stream().map(k->k.newPosition).collect(Collectors.toList());
                 }else {
-                    board.possibleSquares = board.getMoves(prevMove.piece);
+                    board.possibleSquares = board.getMoves(prevMove.piece).stream().map(m->m.newPosition).collect(Collectors.toList());
                 }
                 myFrame.repaint();
             }
@@ -107,7 +91,6 @@ public class MyFrame extends JFrame {
         result.setSize(Const.PANEL_SIZE, Const.PANEL_SIZE);
         result.setBackground(Color.gray);
         result.add(vsComputerButton());
-        result.add(vsFriendButton());
         return result;
     }
 

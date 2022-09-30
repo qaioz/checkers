@@ -18,4 +18,22 @@ public class Const {
         ans += 8-y;
         return ans;
     }
+
+    public static void printBoard(Piece[][] board){
+        for (int i = 0; i < 8; i++) {
+            System.out.println("---------------------------------");
+            for (int j = 0; j < 8; j++) {
+                int k;
+                if(board[i][j] != null && board[i][j].getColor() == Const.WHITE)
+                    k = 1;
+                else if(board[i][j] != null && board[i][j].getColor() == Const.BLACK)
+                    k = 0;
+                else
+                    k = -1;
+                System.out.print("|" + k);
+            }
+            System.out.println("|");
+            System.out.println("---------------------------------");
+        }
+    }
 }
